@@ -7,7 +7,6 @@ import (
 	"github.com/bopoh24/realty-bot/pkg/log"
 )
 
-// TODO: update user data
 // TODO: coverage with gomock
 
 func main() {

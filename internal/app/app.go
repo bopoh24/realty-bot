@@ -98,12 +98,11 @@ func (a *App) commandSubscribers(chatID int64) {
 	message := "<strong>No subscribers found</strong>\nUse /subscribe command to add yourself =)"
 	if len(list) > 0 {
 		message = "<strong>Current subscribers:</strong>\n"
-		for _, user := range list {
-			line := ""
+		for i, user := range list {
+			line := fmt.Sprintf("%d. ", i+1)
 			if user.UserName != "" {
 				line += fmt.Sprintf("@%s ", user.UserName)
-			}
-			if user.Name != "" {
+			} else {
 				line += user.Name
 			}
 			message += line + "\n"

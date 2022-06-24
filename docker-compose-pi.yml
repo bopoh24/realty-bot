@@ -6,11 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-pi
-    environment:
-      TOKEN: ${TOKEN}
-      QUERY: ${QUERY}
-      FILE_USERS: ${FILE_USERS}
-      FILE_ADS: ${FILE_ADS}
+    env_file: .env
     volumes:
       - data_volume:/app/data
     restart: always

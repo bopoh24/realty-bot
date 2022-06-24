@@ -5,11 +5,7 @@ services:
     container_name: realty_bot
     build:
       context: .
-    environment:
-      TOKEN: ${TOKEN}
-      QUERY: ${QUERY}
-      FILE_USERS: ${FILE_USERS}
-      FILE_ADS: ${FILE_ADS}
+    env_file: .env
     volumes:
       - data_volume:/app/data
     restart: always
