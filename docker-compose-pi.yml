@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  realty_bot:
+    container_name: realty_bot
+    build:
+      context: .
+      dockerfile: Dockerfile-pi
+    environment:
+      TOKEN: ${TOKEN}
+      QUERY: ${QUERY}
+      FILE_USERS: ${FILE_USERS}
+      FILE_ADS: ${FILE_ADS}
+    volumes:
+      - data_volume:/app/data
+    restart: always
+
+volumes:
+  data_volume:
+    name: realty_bot_data

@@ -191,7 +191,6 @@ func (a *App) sendMessageToChat(chatID int64, message string, showPreview bool) 
 
 func (a *App) Run() {
 	a.logger.Info().Msgf("Bot started...")
-	a.logger.Info().Msgf("Config is %#v", a.config)
 	for {
 		if len(a.userService.List()) == 0 {
 			a.logger.Warn().Msgf("No subscribers found=(")

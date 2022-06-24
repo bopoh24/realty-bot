@@ -10,9 +10,9 @@ type Config struct {
 }
 
 // NewConfig returns app configuration
-func NewConfig(path string) (*Config, error) {
+func NewConfig() (*Config, error) {
 	config := Config{}
-	if err := cleanenv.ReadConfig(path, &config); err != nil {
+	if err := cleanenv.ReadEnv(&config); err != nil {
 		return nil, err
 	}
 	return &config, nil

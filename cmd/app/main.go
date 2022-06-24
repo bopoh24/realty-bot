@@ -7,7 +7,6 @@ import (
 	"realty_bot/pkg/log"
 )
 
-// TODO: app config
 // TODO: update user data
 // TODO: docker-compose.yml
 // TODO: coverage with gomock
@@ -16,7 +15,7 @@ func main() {
 
 	logger := log.NewLogger()
 
-	config, err := app.NewConfig(".env")
+	config, err := app.NewConfig()
 	if err != nil {
 		logger.Panic().Msgf("Unable to load app config: %s", err)
 	}
