@@ -1,14 +1,13 @@
 package main
 
 import (
-	"realty_bot/internal/app"
-	"realty_bot/internal/service"
-	"realty_bot/internal/store/filestore"
-	"realty_bot/pkg/log"
+	"github.com/bopoh24/realty-bot/internal/app"
+	"github.com/bopoh24/realty-bot/internal/service"
+	"github.com/bopoh24/realty-bot/internal/store/filestore"
+	"github.com/bopoh24/realty-bot/pkg/log"
 )
 
 // TODO: update user data
-// TODO: docker-compose.yml
 // TODO: coverage with gomock
 
 func main() {

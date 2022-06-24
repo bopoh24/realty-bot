@@ -2,10 +2,10 @@ package app
 
 import (
 	"fmt"
+	"github.com/bopoh24/realty-bot/internal/models"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog"
 	"math/rand"
-	"realty_bot/internal/models"
 	"time"
 )
 

@@ -1,7 +1,7 @@
 package service
 
 import (
-	"realty_bot/internal/models"
+	"github.com/bopoh24/realty-bot/internal/models"
 )
 
 type UserStore interface {

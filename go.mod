@@ -1,4 +1,4 @@
-module realty_bot
+module github.com/bopoh24/realty-bot
 
 go 1.18
 

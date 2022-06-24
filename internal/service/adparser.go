@@ -3,10 +3,10 @@ package service
 import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/bopoh24/realty-bot/internal/models"
 	"github.com/rs/zerolog"
 	"io"
 	"net/http"
-	"realty_bot/internal/models"
 	"strconv"
 	"strings"
 	"time"

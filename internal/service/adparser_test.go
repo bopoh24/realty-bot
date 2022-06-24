@@ -1,9 +1,9 @@
 package service
 
 import (
+	"github.com/bopoh24/realty-bot/internal/store/filestore"
+	"github.com/bopoh24/realty-bot/pkg/log"
 	"github.com/stretchr/testify/assert"
-	"realty_bot/internal/store/filestore"
-	"realty_bot/pkg/log"
 	"testing"
 )
 

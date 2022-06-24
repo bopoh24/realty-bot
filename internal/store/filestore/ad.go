@@ -3,8 +3,8 @@ package filestore
 import (
 	"encoding/json"
 	"errors"
+	"github.com/bopoh24/realty-bot/internal/models"
 	"os"
-	"realty_bot/internal/models"
 )
 
 type AdStore struct {
