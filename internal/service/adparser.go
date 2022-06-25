@@ -1,12 +1,15 @@
 package service
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/bopoh24/realty-bot/internal/models"
 	"github.com/rs/zerolog"
 	"io"
 	"net/http"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -19,41 +22,47 @@ type AdStoreInterface interface {
 }
 
 type AdParseService struct {
-	searchLink string
-	store      AdStoreInterface
-	logger     *zerolog.Logger
+	parseURL *url.URL
+	store    AdStoreInterface
+	logger   *zerolog.Logger
 }
 
 // NewAdParseService returns instance of service
-func NewAdParseService(searchLink string, logger *zerolog.Logger, store AdStoreInterface) *AdParseService {
-	return &AdParseService{
-		searchLink: searchLink,
-		logger:     logger,
-		store:      store,
+func NewAdParseService(searchLink string, logger *zerolog.Logger, store AdStoreInterface) (*AdParseService, error) {
+	parseURL, err := url.Parse(searchLink)
+	if err != nil {
+		return nil, err
 	}
+	return &AdParseService{
+		parseURL: parseURL,
+		logger:   logger,
+		store:    store,
+	}, nil
 }
 
-func (b *AdParseService) loadHTML() (io.ReadCloser, error) {
-	res, err := http.Get(b.searchLink)
+func (b *AdParseService) bodyData() ([]byte, error) {
+	res, err := http.Get(b.parseURL.String())
 	if err != nil {
 		return nil, fmt.Errorf("can't get search link: %w", err)
 	}
-
-	if res.StatusCode != 200 {
+	defer func() {
 		if err = res.Body.Close(); err != nil {
 			b.logger.Error().Msg(err.Error())
 		}
+	}()
+	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("can't load html body, status=%d", res.StatusCode)
 	}
-	return res.Body, nil
+	return io.ReadAll(res.Body)
 }
 
-func (b *AdParseService) parseAds(body io.ReadCloser) ([]models.Ad, error) {
-	doc, err := goquery.NewDocumentFromReader(body)
+func (b *AdParseService) parseAds(bodyData []byte) ([]models.Ad, error) {
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(bodyData))
 	if err != nil {
 		return nil, err
 	}
 	result := make([]models.Ad, 0)
+
 	doc.Find(".list-announcement-block").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the title
 		titleLink := s.Find(".announcement-block__title")
@@ -63,7 +72,7 @@ func (b *AdParseService) parseAds(body io.ReadCloser) ([]models.Ad, error) {
 			b.logger.Error().Msgf("unable to get link for %s", title)
 			return
 		}
-		link = "https://www.bazaraki.com" + strings.TrimSpace(link)
+		link = b.parseURL.Scheme + "://" + path.Join(b.parseURL.Host, strings.TrimSpace(link))
 
 		blockDateText := strings.TrimSpace(s.Find(".announcement-block__date").Text())
 		blockDateSplit := strings.Split(blockDateText, ",")
@@ -131,13 +140,11 @@ func (b *AdParseService) parseDate(dateStr string) time.Time {
 
 // NewAds returns new ads
 func (b *AdParseService) NewAds() ([]models.Ad, error) {
-	htmlReader, err := b.loadHTML()
+	bodyData, err := b.bodyData()
 	if err != nil {
 		return nil, err
 	}
-	defer htmlReader.Close()
-
-	ads, err := b.parseAds(htmlReader)
+	ads, err := b.parseAds(bodyData)
 	if err != nil {
 		return nil, err
 	}

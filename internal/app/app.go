@@ -34,7 +34,7 @@ func NewApp(logger *zerolog.Logger, config *Config,
 	// bot init
 	bot, err := tgbotapi.NewBotAPI(config.Token)
 	if err != nil {
-		logger.Panic().Err(err)
+		logger.Fatal().Err(err)
 	}
 	app := &App{
 		config:      config,
@@ -70,6 +70,46 @@ func (a *App) CommandHandler() {
 			a.commandSubscribe(update.Message.Chat.ID, update.Message.Chat.UserName, update.Message.Chat.FirstName, update.Message.Chat.LastName)
 		case "unsubscribe":
 			a.commandUnsubscribe(update.Message.Chat.ID)
+		}
+	}
+}
+
+func (a *App) Run() {
+	a.logger.Info().Msgf("Bot started...")
+	for {
+		if len(a.userService.List()) == 0 {
+			a.logger.Warn().Msgf("No subscribers found=(")
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		timeout := time.Second * 10
+		if time.Now().UTC().Hour() >= 21 || time.Now().UTC().Hour() <= 4 {
+			timeout = time.Minute * 30
+		}
+		time.Sleep(timeout + time.Duration(rand.Intn(3000))*time.Millisecond)
+		a.logger.Info().Msgf("Parsing new ads...")
+		newAds, err := a.adService.NewAds()
+		if err != nil {
+			a.logger.Error().Msg(err.Error())
+			continue
+		}
+		if len(newAds) == 0 {
+			a.logger.Info().Msgf("No new ads found =(")
+			continue
+		}
+		a.logger.Info().Msgf("New ads=%d found!", len(newAds))
+
+		for _, user := range a.userService.List() {
+			for _, ad := range newAds {
+				err = a.sendMessageToChat(user.ChatID,
+					fmt.Sprintf("<strong>%s</strong>\n<code>€%d</code>\n<i>%s</i>\n\n%s",
+						ad.Title, ad.Price, ad.Location, ad.Link), true)
+				if err != nil {
+					a.logger.Err(err)
+					continue
+				}
+				time.Sleep(time.Second)
+			}
 		}
 	}
 }
@@ -186,40 +226,4 @@ func (a *App) sendMessageToChat(chatID int64, message string, showPreview bool) 
 	}
 	_, err := a.bot.Send(msgConf)
 	return err
-}
-
-func (a *App) Run() {
-	a.logger.Info().Msgf("Bot started...")
-	for {
-		if len(a.userService.List()) == 0 {
-			a.logger.Warn().Msgf("No subscribers found=(")
-			time.Sleep(time.Second * 5)
-			continue
-		}
-		time.Sleep(time.Second*10 + time.Duration(rand.Intn(1000))*time.Millisecond)
-		a.logger.Info().Msgf("Parsing new ads...")
-		newAds, err := a.adService.NewAds()
-		if err != nil {
-			a.logger.Error().Msg(err.Error())
-			continue
-		}
-		if len(newAds) == 0 {
-			a.logger.Info().Msgf("No new ads found =(")
-			continue
-		}
-		a.logger.Info().Msgf("New ads=%d found!", len(newAds))
-
-		for _, user := range a.userService.List() {
-			for _, ad := range newAds {
-				err = a.sendMessageToChat(user.ChatID,
-					fmt.Sprintf("<strong>%s</strong>\n<code>€%d</code>\n<i>%s</i>\n\n%s", ad.Title, ad.Price, ad.Location, ad.Link),
-					true)
-				if err != nil {
-					a.logger.Err(err)
-					continue
-				}
-				time.Sleep(time.Second)
-			}
-		}
-	}
 }

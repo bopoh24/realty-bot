@@ -12,20 +12,19 @@ import (
 func main() {
 
 	logger := log.NewLogger()
-
-	config, err := app.NewConfig()
-	if err != nil {
-		logger.Panic().Msgf("Unable to load app config: %s", err)
-	}
+	config := app.MustConfig()
 
 	// user service init
 	userService, err := service.NewUserService(filestore.NewUserStore(config.FileUsers))
 	if err != nil {
-		logger.Panic().Msg(err.Error())
+		logger.Fatal().Msg(err.Error())
 	}
 
 	// ad service init
-	adParseService := service.NewAdParseService(config.Query, logger, filestore.NewAdStore(config.FileAds))
+	adParseService, err := service.NewAdParseService(config.Query, logger, filestore.NewAdStore(config.FileAds))
+	if err != nil {
+		logger.Fatal().Msg(err.Error())
+	}
 
 	a := app.NewApp(
 		logger,
