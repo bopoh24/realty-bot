@@ -1,12 +1,16 @@
 package service
 
 import (
+	"github.com/bopoh24/realty-bot/internal/store/filestore"
 	"github.com/bopoh24/realty-bot/pkg/log"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"os"
 	"testing"
 )
 
-const searchURL = "https://www.bazaraki.com/real-estate/houses-and-villas-rent/?city_districts=5732&city_districts=5815&city_districts=5772&city_districts=5771&city_districts=5776&city_districts=5735&city_districts=5774&city_districts=5770&city_districts=5773&city_districts=5733&city_districts=5734&city_districts=5736&city_districts=5545&city_districts=5503&price_max=1500"
+const htmlSampleFile = "../../testing/html_sample.html"
+const storeFile = "ads_test.json"
 
 func TestBodyDataOK(t *testing.T) {
 	b, err := NewAdParseService("https://google.com", log.NewLogger(), nil)
@@ -27,27 +31,46 @@ func TestBodyDataErrRequest(t *testing.T) {
 }
 
 func TestAds(t *testing.T) {
-	b, err := NewAdParseService(searchURL, log.NewLogger(), nil)
+	b, err := NewAdParseService("https://non-existent.domain", log.NewLogger(), nil)
 	assert.NoError(t, err)
-
-	body, err := b.bodyData()
+	body, err := ioutil.ReadFile(htmlSampleFile)
 	assert.NoError(t, err)
-	ads, err := b.parseAds(body)
+	ads, err := b.parsedAds(body)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ads)
 	ad := ads[0]
 	assert.NotEmpty(t, ad.Link)
-	t.Logf(ad.Link)
 	assert.NotEmpty(t, ad.Title)
 	assert.NotEmpty(t, ad.Price)
 	assert.NotEmpty(t, ad.Location)
 	assert.False(t, ad.Datetime.IsZero())
+	// only 4 ads before "Ads from other regions"
+	assert.Len(t, ads, 4)
 }
 
-// func TestNewAds(t *testing.T) {
-// 	b := NewAdParseService(searchURL, log.NewLogger(), filestore.NewAdStore("ads_test.json"))
-// 	ads, err := b.NewAds()
-// 	assert.NoError(t, err)
-// 	assert.NotEmpty(t, ads)
-// 	t.Logf("%#v", ads[0])
-// }
+func TestNewAds(t *testing.T) {
+
+	b, err := NewAdParseService("https://non-existent.domain",
+		log.NewLogger(), filestore.NewAdStore(storeFile))
+	assert.NoError(t, err)
+	assert.True(t, b.store.IsEmpty())
+	defer func() {
+		_ = os.Remove(storeFile)
+	}()
+
+	body, err := ioutil.ReadFile(htmlSampleFile)
+	assert.NoError(t, err)
+
+	ads, err := b.parsedAds(body)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, ads)
+
+	newAds, err := b.newAds(ads[1:])
+	assert.NoError(t, err)
+	assert.Empty(t, newAds)
+
+	newAds, err = b.newAds(ads)
+	assert.NoError(t, err)
+	assert.Len(t, newAds, 1)
+
+}

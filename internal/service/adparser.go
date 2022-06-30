@@ -56,14 +56,34 @@ func (b *AdParseService) bodyData() ([]byte, error) {
 	return io.ReadAll(res.Body)
 }
 
-func (b *AdParseService) parseAds(bodyData []byte) ([]models.Ad, error) {
+func (b *AdParseService) parsedAds(bodyData []byte) ([]models.Ad, error) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(bodyData))
 	if err != nil {
 		return nil, err
 	}
 	result := make([]models.Ad, 0)
 
-	doc.Find(".list-announcement-block").Each(func(i int, s *goquery.Selection) {
+	otherAdsBlockFound := false
+	otherAdsBlockText := "Ads from other regions"
+
+	doc.Find(".list-simple__output").Children().Each(func(i int, s *goquery.Selection) {
+		if s.Is("h2.header") && strings.TrimSpace(s.Text()) == otherAdsBlockText {
+			otherAdsBlockFound = true
+			return
+		}
+		if otherAdsBlockFound {
+			return
+		}
+		if s.Is("li.announcement-container") {
+			b.parseAdBlock(s, &result)
+		}
+	})
+	return result, nil
+}
+
+func (b *AdParseService) parseAdBlock(blockSelection *goquery.Selection, ads *[]models.Ad) {
+	var err error
+	blockSelection.Find(".list-announcement-block").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the title
 		titleLink := s.Find(".announcement-block__title")
 		title := strings.TrimSpace(titleLink.Text())
@@ -78,9 +98,6 @@ func (b *AdParseService) parseAds(bodyData []byte) ([]models.Ad, error) {
 		blockDateSplit := strings.Split(blockDateText, ",")
 		datetime := b.parseDate(blockDateSplit[0])
 		location := strings.TrimSpace(blockDateSplit[len(blockDateSplit)-1])
-		if !strings.HasPrefix(location, "Larnaka") {
-			return
-		}
 		price := 0
 		s.Find("meta").Each(func(i int, m *goquery.Selection) {
 			val, exists := m.Attr("itemprop")
@@ -105,9 +122,8 @@ func (b *AdParseService) parseAds(bodyData []byte) ([]models.Ad, error) {
 			Price:    price,
 			Datetime: datetime,
 		}
-		result = append(result, ad)
+		*ads = append(*ads, ad)
 	})
-	return result, nil
 }
 
 func (b *AdParseService) parseDate(dateStr string) time.Time {
@@ -138,18 +154,9 @@ func (b *AdParseService) parseDate(dateStr string) time.Time {
 	}
 }
 
-// NewAds returns new ads
-func (b *AdParseService) NewAds() ([]models.Ad, error) {
-	bodyData, err := b.bodyData()
-	if err != nil {
-		return nil, err
-	}
-	ads, err := b.parseAds(bodyData)
-	if err != nil {
-		return nil, err
-	}
+func (b *AdParseService) newAds(parsedAds []models.Ad) ([]models.Ad, error) {
 	if b.store.IsEmpty() {
-		if err = b.store.Save(ads); err != nil {
+		if err := b.store.Save(parsedAds); err != nil {
 			return nil, err
 		}
 		// create initial ads
@@ -158,17 +165,30 @@ func (b *AdParseService) NewAds() ([]models.Ad, error) {
 	// read store and compare
 	sentAdsMap, err := b.store.Load()
 	// compare
-	adsToSend := make([]models.Ad, 0)
-	for _, newAd := range ads {
+	newAds := make([]models.Ad, 0)
+	for _, newAd := range parsedAds {
 		if _, ok := sentAdsMap[newAd.Link]; ok {
 			continue
 		}
-		adsToSend = append(adsToSend, newAd)
+		newAds = append(newAds, newAd)
 	}
-	if len(adsToSend) != 0 {
-		if err = b.store.Save(ads); err != nil {
+	if len(newAds) != 0 {
+		if err = b.store.Save(parsedAds); err != nil {
 			return nil, err
 		}
 	}
-	return adsToSend, nil
+	return newAds, nil
+}
+
+// AdsToNotify returns new ads
+func (b *AdParseService) AdsToNotify() ([]models.Ad, error) {
+	bodyData, err := b.bodyData()
+	if err != nil {
+		return nil, err
+	}
+	ads, err := b.parsedAds(bodyData)
+	if err != nil {
+		return nil, err
+	}
+	return b.newAds(ads)
 }

@@ -11,13 +11,13 @@ import (
 
 type UserServiceInterface interface {
 	List() []models.User
-	Subscribed(int64) bool
-	Subscribe(models.User) error
-	UnSubscribe(int64) error
+	Exists(int64) bool
+	Save(models.User) error
+	Delete(int64) error
 }
 
 type AdServiceInterface interface {
-	NewAds() ([]models.Ad, error)
+	AdsToNotify() ([]models.Ad, error)
 }
 
 type App struct {
@@ -79,39 +79,50 @@ func (a *App) Run() {
 	for {
 		if len(a.userService.List()) == 0 {
 			a.logger.Warn().Msgf("No subscribers found=(")
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 10)
 			continue
 		}
-		timeout := time.Second * 10
-		if time.Now().UTC().Hour() >= 21 || time.Now().UTC().Hour() <= 4 {
-			timeout = time.Minute * 30
-		}
-		time.Sleep(timeout + time.Duration(rand.Intn(3000))*time.Millisecond)
 		a.logger.Info().Msgf("Parsing new ads...")
-		newAds, err := a.adService.NewAds()
+		newAds, err := a.adService.AdsToNotify()
 		if err != nil {
 			a.logger.Error().Msg(err.Error())
+			a.parseTimeOut()
 			continue
 		}
 		if len(newAds) == 0 {
 			a.logger.Info().Msgf("No new ads found =(")
+			a.parseTimeOut()
 			continue
 		}
-		a.logger.Info().Msgf("New ads=%d found!", len(newAds))
-
+		a.logger.Info().Msgf("New ads found: %d", len(newAds))
 		for _, user := range a.userService.List() {
 			for _, ad := range newAds {
-				err = a.sendMessageToChat(user.ChatID,
-					fmt.Sprintf("<strong>%s</strong>\n<code>€%d</code>\n<i>%s</i>\n\n%s",
-						ad.Title, ad.Price, ad.Location, ad.Link), true)
-				if err != nil {
-					a.logger.Err(err)
-					continue
+				if err = a.sendAdNotification(user.ChatID, ad); err != nil {
+					a.logger.Error().Msg(err.Error())
 				}
-				time.Sleep(time.Second)
 			}
 		}
+		a.parseTimeOut()
 	}
+}
+
+func (a App) parseTimeOut() {
+	timeout := time.Second * 10
+	if time.Now().UTC().Hour() >= 21 || time.Now().UTC().Hour() <= 4 {
+		timeout = time.Minute * 30
+	}
+	time.Sleep(timeout + time.Duration(rand.Intn(3000))*time.Millisecond)
+}
+
+func (a App) sendAdNotification(chatID int64, ad models.Ad) error {
+	return a.sendMessageToChat(chatID,
+		fmt.Sprintf("<strong>%s</strong>\n"+
+			"<code>€%d</code>\n"+
+			"<i>%s</i>\n"+
+			"%s"+
+			"\n%s",
+			ad.Title, ad.Price, ad.Location,
+			ad.Datetime.Format("02.01.2006 15:04:05"), ad.Link), true)
 }
 
 func (a *App) commandHelp(chatID int64) {
@@ -155,7 +166,7 @@ func (a *App) commandSubscribers(chatID int64) {
 }
 
 func (a *App) commandSubscribe(chatID int64, username string, firstName string, lastName string) {
-	if a.userService.Subscribed(chatID) {
+	if a.userService.Exists(chatID) {
 		err := a.sendMessageToChat(chatID,
 			"<strong>You already subscribed! =)</strong>\nWait for notifications",
 			false)
@@ -172,7 +183,7 @@ func (a *App) commandSubscribe(chatID int64, username string, firstName string, 
 	user.Name = fmt.Sprintf("%s %s",
 		lastName, firstName)
 
-	if err := a.userService.Subscribe(user); err != nil {
+	if err := a.userService.Save(user); err != nil {
 		err = a.sendMessageToChat(chatID,
 			"<strong>Error! =)</strong>\nSomething went wrong: "+err.Error(),
 			false)
@@ -191,7 +202,7 @@ func (a *App) commandSubscribe(chatID int64, username string, firstName string, 
 }
 
 func (a *App) commandUnsubscribe(chatID int64) {
-	if !a.userService.Subscribed(chatID) {
+	if !a.userService.Exists(chatID) {
 		err := a.sendMessageToChat(chatID,
 			"<strong>You are not subscribed! =)</strong>\nUse /subscribe command to subscribe notifications",
 			false)
@@ -200,7 +211,7 @@ func (a *App) commandUnsubscribe(chatID int64) {
 		}
 		return
 	}
-	if err := a.userService.UnSubscribe(chatID); err != nil {
+	if err := a.userService.Delete(chatID); err != nil {
 		err = a.sendMessageToChat(chatID,
 			"<strong>Error! =)</strong>\nSomething went wrong: "+err.Error(),
 			false)

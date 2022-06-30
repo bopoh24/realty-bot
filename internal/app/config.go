@@ -2,21 +2,20 @@ package app
 
 import (
 	"github.com/ilyakaznacheev/cleanenv"
-	"log"
 )
 
 type Config struct {
-	Token     string `env:"TOKEN" env-required"`
-	Query     string `env:"QUERY" env-required`
-	FileUsers string `env:"FILE_USERS" env-default:"users.json"  env-required`
-	FileAds   string `env:"FILE_ADS" env-default:"ads.json"  env-required`
+	Token     string `env:"TOKEN" env-required:"true"`
+	Query     string `env:"QUERY" env-required:"true"`
+	FileUsers string `env:"FILE_USERS" env-default:"users.json"  env-required:"true"`
+	FileAds   string `env:"FILE_ADS" env-default:"ads.json"  env-required:"true"`
 }
 
-// MustConfig returns app configuration
-func MustConfig() *Config {
+// NewConfig returns app configuration
+func NewConfig() (*Config, error) {
 	config := Config{}
 	if err := cleanenv.ReadEnv(&config); err != nil {
-		log.Fatalf("Unable to load config: %s", err)
+		return nil, err
 	}
-	return &config
+	return &config, nil
 }

@@ -26,18 +26,18 @@ func NewUserService(store UserStore) (*UserService, error) {
 	return s, nil
 }
 
-// Subscribed checks if subscriber exists
-func (s *UserService) Subscribed(chatID int64) bool {
+// Exists checks if subscriber exists
+func (s *UserService) Exists(chatID int64) bool {
 	_, ok := s.users[chatID]
 	return ok
 }
 
-func (s *UserService) Subscribe(user models.User) error {
+func (s *UserService) Save(user models.User) error {
 	s.users[user.ChatID] = user
 	return s.store.Save(s.users)
 }
 
-func (s *UserService) UnSubscribe(chatID int64) error {
+func (s *UserService) Delete(chatID int64) error {
 	delete(s.users, chatID)
 	return s.store.Save(s.users)
 }
