@@ -17,7 +17,7 @@ import (
 
 type AdStoreInterface interface {
 	Save(ads []models.Ad) error
-	Load() (map[string]models.Ad, error)
+	Load() (map[models.AdLink]models.Ad, error)
 	IsEmpty() bool
 }
 
@@ -27,7 +27,7 @@ type AdParseService struct {
 	logger   *zerolog.Logger
 }
 
-// NewAdParseService returns instance of service
+// NewAdParseService returns instance of service.
 func NewAdParseService(searchLink string, logger *zerolog.Logger, store AdStoreInterface) (*AdParseService, error) {
 	parseURL, err := url.Parse(searchLink)
 	if err != nil {
@@ -117,7 +117,7 @@ func (b *AdParseService) parseAdBlock(blockSelection *goquery.Selection, ads *[]
 		})
 		ad := models.Ad{
 			Title:    title,
-			Link:     link,
+			Link:     models.AdLink(link),
 			Location: location,
 			Price:    price,
 			Datetime: datetime,

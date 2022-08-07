@@ -29,7 +29,7 @@ func (a *AdStore) Save(ads []models.Ad) error {
 	return nil
 }
 
-func (a *AdStore) Load() (map[string]models.Ad, error) {
+func (a *AdStore) Load() (map[models.AdLink]models.Ad, error) {
 	data, err := os.ReadFile(a.filename)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (a *AdStore) Load() (map[string]models.Ad, error) {
 	if err = json.Unmarshal(data, &sentAds); err != nil {
 		return nil, err
 	}
-	sentAdsMap := make(map[string]models.Ad)
+	sentAdsMap := make(map[models.AdLink]models.Ad)
 	for _, ad := range sentAds {
 		sentAdsMap[ad.Link] = ad
 	}

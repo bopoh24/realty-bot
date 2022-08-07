@@ -7,16 +7,16 @@ import (
 	"os"
 )
 
-type UserStore struct {
+type ChatStore struct {
 	filename string
 }
 
-// NewUserStore return store instance
-func NewUserStore(filename string) *UserStore {
-	return &UserStore{filename: filename}
+// NewChatStore return store instance
+func NewChatStore(filename string) *ChatStore {
+	return &ChatStore{filename: filename}
 }
 
-func (u *UserStore) Load(output map[int64]models.User) error {
+func (u *ChatStore) Load(output map[models.ChatID]models.Chat) error {
 	if _, err := os.Stat(u.filename); errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
@@ -30,7 +30,7 @@ func (u *UserStore) Load(output map[int64]models.User) error {
 	return nil
 }
 
-func (u *UserStore) Save(users map[int64]models.User) error {
+func (u *ChatStore) Save(users map[models.ChatID]models.Chat) error {
 	data, err := json.MarshalIndent(users, "", "\t")
 	if err != nil {
 		return err

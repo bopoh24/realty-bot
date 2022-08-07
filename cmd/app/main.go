@@ -7,8 +7,6 @@ import (
 	"github.com/bopoh24/realty-bot/pkg/log"
 )
 
-// TODO: coverage with gomock
-
 func main() {
 
 	logger := log.NewLogger()
@@ -20,7 +18,7 @@ func main() {
 	}
 
 	// user service init
-	userService, err := service.NewUserService(filestore.NewUserStore(config.FileUsers))
+	userService, err := service.NewChatService(filestore.NewChatStore(config.FileUsers))
 	if err != nil {
 		logger.Fatal().Msgf("Unable to init user service:", err.Error())
 	}

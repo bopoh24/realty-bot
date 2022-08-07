@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-const htmlSampleFile = "../../testing/html_sample.html"
+const htmlSampleFile = "../../testing/ads.page.sample.html_"
 const storeFile = "ads_test.json"
 
 func TestBodyDataOK(t *testing.T) {
